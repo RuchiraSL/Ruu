@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nifti Tech Invoicing</title>
+<style>
+:root{--paper:#f6f7f8;--card:#fff;--ink:#1b2430;--mute:#66707d;--line:#d9dee4;--acc:#0f6e8c;--ok:#2e7d4f;--warn:#a8741a;--bad:#b3412f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header{background:var(--ink);color:#fff;display:flex;align-items:center;gap:28px;padding:0 24px;min-height:56px;flex-wrap:wrap}
+header b{font-size:17px;letter-spacing:.2px}
+nav{display:flex;gap:4px}
+nav button{background:none;border:0;color:#b9c3cf;font:inherit;padding:16px 12px;cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:#fff;border-color:#4fb3d1}
+main{max-width:1000px;margin:24px auto;padding:0 16px}
+h2{margin:0 0 16px;font-size:22px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.grow{flex:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px}
+.stat small{color:var(--mute);display:block}
+.stat strong{font-size:20px;font-variant-numeric:tabular-nums}
+.stat.big strong{color:var(--bad)}
+.clk{display:flex;gap:24px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.clk .tm{font-size:34px;font-weight:300;font-variant-numeric:tabular-nums;line-height:1.1}
+.clk .tp{font-size:28px;font-weight:300;text-align:right;line-height:1.1}
+.clk small{color:var(--mute);display:block}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:6px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-size:13px;color:var(--mute);font-weight:600;background:#fafbfc}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer}
+tr.click:hover td{background:#f0f6f9}
+.wrap{overflow-x:auto}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:7px 14px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button.dng{color:var(--bad)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:#fff;color:var(--ink);width:100%}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:3px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tag{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid}
+.tag.draft{color:var(--mute);border-color:var(--line)}
+.tag.sent{color:var(--acc);border-color:var(--acc)}
+.tag.paid{color:var(--ok);border-color:var(--ok)}
+.tag.overdue{color:var(--bad);border-color:var(--bad)}
+.empty{padding:32px;text-align:center;color:var(--mute);background:var(--card);border:1px dashed var(--line);border-radius:6px}
+.tot{margin-left:auto;width:280px;max-width:100%}
+.tot div{display:flex;justify-content:space-between;padding:3px 0;font-variant-numeric:tabular-nums}
+.tot .g{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:700;font-size:17px}
+.tag.partial{color:var(--warn);border-color:var(--warn)}.tag.approved,.tag.active{color:var(--ok);border-color:var(--ok)}.tag.rejected{color:var(--bad);border-color:var(--bad)}.tag.done{color:var(--mute);border-color:var(--line)}
+.bar{height:8px;background:var(--acc);border-radius:2px;min-width:1px}.inl{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.inl>div{flex:1;min-width:120px}a{color:var(--acc)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 18px;border-radius:6px;display:none}
+#sheet{background:#fff;border:1px solid var(--line);padding:40px;margin-bottom:16px}
+#sheet h1{margin:0;font-size:28px}
+#sheet .top{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+#sheet table{border:0;margin:16px 0}
+#sheet .pre{white-space:pre-line}
+.mute{color:var(--mute)}
+@page{size:A4;margin:0}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#sheet{padding:48px 56px;letter-spacing:.3px}
+#sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+#sheet .ttl{font-size:60px;font-weight:200;letter-spacing:2px;line-height:1;margin:0;text-transform:uppercase}
+#sheet .meta{margin-top:18px;font-size:15px;line-height:1.7;color:#222}
+#sheet .logo{height:96px;width:auto}
+#sheet .to{margin:56px 0 28px;font-weight:700;font-size:16px;line-height:1.5}
+#sheet .rule{border:0;border-top:2px solid #111;margin:0}
+#sheet table.it{border-collapse:collapse;width:100%;margin:0;border:0}
+#sheet .it th{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:#222;border:0;background:none;padding:22px 10px 14px;font-weight:700}
+#sheet .it td{border:0;padding:9px 10px;font-weight:300}
+#sheet .note{text-align:center;font-weight:700;font-size:12.5px;letter-spacing:1.8px;margin:44px 0 18px;white-space:pre-line}
+#sheet .bot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:16px 10px 36px}
+#sheet .bank{margin-top:56px;line-height:1.8;font-weight:300}
+#sheet .sum{width:340px;max-width:100%}
+#sheet .sum div{display:flex;justify-content:space-between;padding:4px 0;font-variant-numeric:tabular-nums}
+#sheet .sum .g{font-weight:700}
+#sheet .rights{text-align:center;margin-top:28px;font-size:12px;letter-spacing:.5px;color:#444}
+#sheet .ft{display:flex;justify-content:space-between;gap:24px;border-top:2px solid #111;padding:14px 10px 0;font-weight:300}
+@media print{
+ body{background:#fff}
+ header,.noprint,#toast{display:none!important}
+ main{max-width:none;margin:0;padding:0}
+ #sheet{border:0;padding:12mm 14mm}
+}
+</style>
+</head>
+<body>
+<header class="noprint"><b id="brand" style="cursor:pointer" onclick="go('home')">Nifti Tech</b>
+<nav><button data-t="home">Home</button><button data-t="quotes">Quotes</button><button data-t="invoices">Invoices</button><button data-t="projects">Projects</button><button data-t="time">Time &amp; expenses</button><button data-t="clients">Clients</button><button data-t="reports">Reports</button><button data-t="settings">Settings</button></nav><span id="sync" class="noprint" style="margin-left:auto;font-size:13px"></span><button class="noprint" onclick="logout()" style="background:none;color:#b9c3cf;border-color:#4a5563;padding:3px 10px;font-size:13px">Log out</button></header>
+<main id="app"></main>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const LOGO="data:image/png;base64,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";
+const num=n=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const dmy=d=>String(d).split('-').reverse().join('/');
+const DEF={settings:{name:'Nifti Tech',address:'',phone:'+94712850575',email:'niftitec@gmail.com',website:'www.niftitech.com',handle:'@niftitech',taxId:'',currency:'Rs',taxRate:0,prefix:'#',next:15,qprefix:'Q-',qnext:1,terms:'Note - 60 days warranty for the replaced items',bank:'National Savings Bank\nAccount Name: Ruchira Hettige\nAccount No.: 100806020283',dueDays:14},clients:[],invoices:[],projects:[],time:[],expenses:[]};
+
+function load(){try{const d=JSON.parse(localStorage.getItem('nifti_db'));if(d&&d.settings)return {...DEF,...d,settings:{...DEF.settings,...d.settings}}}catch(e){}return JSON.parse(JSON.stringify(DEF))}
+let db=load();
+/* ---------- Cloud sync (Netlify Function + Blobs) ---------- */
+let rev=0,pw=localStorage.getItem('nifti_pw')||'',timer=null,saving=false,dirty=false;
+function setSync(t,bad){const e=document.getElementById('sync');if(e){e.textContent=t;e.style.color=bad?'#f0a99c':'#9fd3a8'}}
+function save(){try{localStorage.setItem('nifti_db',JSON.stringify(db));localStorage.setItem('nifti_dirty','1')}catch(e){toast('Could not save locally. Export a backup from Settings.')}
+ dirty=true;setSync('Saving...');clearTimeout(timer);timer=setTimeout(push,500)}
+const api=(m,body)=>fetch('/api/data',{method:m,headers:{'content-type':'application/json','x-app-password':pw,'x-base-rev':String(rev)},body});
+async function push(){
+ if(saving){timer=setTimeout(push,400);return}
+ saving=true;dirty=false;
+ try{const r=await api('PUT',JSON.stringify(db));
+  if(r.status===401){showLogin('Session expired. Enter your password.');return}
+  if(r.status===409){localStorage.setItem('nifti_db_conflict',JSON.stringify(db));await pull(true);render();toast('Another device changed the data. Latest version loaded.');return}
+  if(!r.ok)throw 0;
+  rev=(await r.json()).rev;localStorage.setItem('nifti_rev',rev);
+  if(!dirty){localStorage.removeItem('nifti_dirty');setSync('Synced')}}
+ catch(e){dirty=true;setSync('Offline, will retry',1);clearTimeout(timer);timer=setTimeout(push,10000)}
+ finally{saving=false}}
+async function pull(force){
+ const r=await api('GET');
+ if(r.status===401){const e=new Error('auth');e.auth=1;throw e}
+ if(!r.ok)throw new Error('http');
+ const j=await r.json();
+ if(!j.data){rev=j.rev||0;save();return false}
+ if(!force&&localStorage.getItem('nifti_dirty')==='1'&&j.rev===rev){save();return false}
+ if(j.rev===rev&&!force)return false;
+ try{localStorage.setItem('nifti_db_prev',localStorage.getItem('nifti_db')||'')}catch(e){}
+ db={...DEF,...j.data,settings:{...DEF.settings,...j.data.settings}};
+ rev=j.rev;
+ try{localStorage.setItem('nifti_db',JSON.stringify(db));localStorage.setItem('nifti_rev',rev);localStorage.removeItem('nifti_dirty')}catch(e){}
+ return true}
+async function boot(){
+ if(!pw){showLogin();return}
+ rev=+localStorage.getItem('nifti_rev')||0;
+ try{await pull();if(!dirty)setSync('Synced');render()}
+ catch(e){if(e.auth){showLogin('Wrong or changed password.');return}setSync('Offline',1);render()}}
+function showLogin(msg){
+ let o=document.getElementById('login');if(!o){o=document.createElement('div');o.id='login';document.body.appendChild(o)}
+ o.style.cssText='position:fixed;inset:0;background:var(--paper);z-index:50;overflow:auto';
+ o.innerHTML=`<div class="card" style="max-width:340px;margin:12vh auto"><h2>Sign in</h2><p class="mute">${msg||'Enter your password to open Nifti Tech Invoicing.'}</p><input type="password" id="lp" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"><div class="row" style="margin:12px 0 0"><button class="pri" onclick="doLogin()">Sign in</button></div></div>`;
+ document.getElementById('lp').focus()}
+async function doLogin(){pw=document.getElementById('lp').value;localStorage.setItem('nifti_pw',pw);const o=document.getElementById('login');if(o)o.remove();await boot()}
+function logout(){if(localStorage.getItem('nifti_dirty')==='1'&&!confirm('Some changes have not synced yet and will be lost. Log out anyway?'))return;
+ ['nifti_pw','nifti_db','nifti_rev','nifti_dirty'].forEach(k=>localStorage.removeItem(k));location.reload()}
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&pw&&!dirty&&!saving&&V.sub!=='edit'){try{if(await pull())render()}catch(e){}}});
+setInterval(async()=>{if(pw&&!dirty&&!saving&&V.sub!=='edit'&&document.visibilityState==='visible'){try{if(await pull())render()}catch(e){}}},60000);
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2600)}
+const money=n=>db.settings.currency+' '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+function calc(i){const sub=i.items.reduce((a,l)=>a+(+l.q||0)*(+l.p||0),0);const disc=+i.discount||0;const taxable=Math.max(sub-disc,0);const tax=taxable*(+i.tax||0)/100;return{sub,disc,tax,total:taxable+tax}}
+const isQ=i=>i.type==='quote';
+const tabOf=i=>isQ(i)?'quotes':'invoices';
+const payList=i=>i.payments&&i.payments.length?i.payments:(i.status==='paid'?[{date:i.paidOn||i.date,amount:calc(i).total,method:''}]:[]);
+const paidAmt=i=>payList(i).reduce((a,p)=>a+(+p.amount||0),0);
+const bal=i=>i.status==='paid'?0:Math.max(calc(i).total-paidAmt(i),0);
+function status(i){if(isQ(i)||i.status==='draft')return i.status;if(bal(i)<=0.005)return 'paid';if(i.due<today())return 'overdue';return paidAmt(i)>0?'partial':'sent'}
+const client=id=>db.clients.find(c=>c.id===id)||{name:'(deleted client)'};
+const invById=id=>db.invoices.find(i=>i.id===id);
+
+let V={tab:'home',sub:'list',id:null,filter:'all',q:''},ed=null;
+function go(tab,sub='list',id=null){if(tab!==V.tab){V.filter='all';V.q=''}V={...V,tab,sub,id};render()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+
+function render(){
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===V.tab));
+ $('#brand').textContent=db.settings.name;
+ document.title=db.settings.name+' Invoicing';
+ const f={home:{list:homeView},quotes:{list:quoList,edit:invEdit,view:invView},invoices:{list:invList,edit:invEdit,view:invView},projects:{list:prjList,edit:prjEdit,view:prjView},time:{list:timeView},clients:{list:cliList,edit:cliEdit},reports:{list:repView},settings:{list:setView}}[V.tab][V.sub];
+ $('#app').innerHTML=f();
+ scrollTo(0,0);
+ tickHome();
+ if(V.sub==='edit'&&ed&&['invoices','quotes'].includes(V.tab))totals();
+}
+
+
+
+/* ---------- Clock and weather ---------- */
+const WX={place:'Colombo',lat:6.9271,lon:79.8612,t:null,c:'',at:0};
+const WXC=c=>c===0?'Clear':c<=3?'Partly cloudy':c<=48?'Fog':c<=57?'Drizzle':c<=67?'Rain':c<=77?'Snow':c<=82?'Showers':'Thunderstorm';
+function tickHome(){
+ const a=document.getElementById('hm-time');if(!a)return;
+ const n=new Date();a.textContent=n.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+ document.getElementById('hm-date').textContent=n.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ const tp=document.getElementById('hm-temp');
+ if(WX.t!==null){tp.textContent=Math.round(WX.t)+'°C';document.getElementById('hm-wx').textContent=WX.place+(WX.c?' · '+WX.c:'')}
+ if(Date.now()-WX.at>6e5){WX.at=Date.now();
+  fetch('https://api.open-meteo.com/v1/forecast?latitude='+WX.lat+'&longitude='+WX.lon+'&current=temperature_2m,weather_code&timezone=auto')
+  .then(r=>r.json()).then(d=>{WX.t=d.current.temperature_2m;WX.c=WXC(d.current.weather_code);tickHome()})
+  .catch(()=>{WX.at=Date.now()-5.4e5;if(WX.t===null)document.getElementById('hm-wx').textContent=WX.place+' · temperature unavailable'})}
+}
+setInterval(tickHome,1000);
+
+/* ---------- Home ---------- */
+function homeView(){
+ const t=today(),m=t.slice(0,7),inv=db.invoices.filter(i=>!isQ(i)&&i.status!=='draft'),qs=db.invoices.filter(isQ);
+ let billed=0,coll=0,out=0,over=0,overN=0,outN=0,paidN=0,billedM=0,collM=0;
+ inv.forEach(i=>{const tt=calc(i).total,b=bal(i),st=status(i);billed+=tt;coll+=paidAmt(i);
+  if(i.date.slice(0,7)===m)billedM+=tt;
+  payList(i).forEach(x=>{if((x.date||'').slice(0,7)===m)collM+=+x.amount||0});
+  if(b>0){out+=b;outN++}if(st==='overdue'){over+=b;overN++}if(st==='paid')paidN++});
+ const qc=k=>qs.filter(i=>i.status===k).length,qv=qs.reduce((a,i)=>a+calc(i).total,0);
+ const qDec=qc('approved')+qc('rejected'),win=qDec?Math.round(qc('approved')/qDec*100):0;
+ const drafts=db.invoices.filter(i=>!isQ(i)&&i.status==='draft').length;
+ const st=(l,v,k='',sub='')=>`<div class="stat ${k}"><small>${l}</small><strong>${v}</strong>${sub?`<small>${sub}</small>`:''}</div>`;
+ const row=i=>`<tr class="click" onclick="go('${tabOf(i)}','view','${i.id}')"><td>${esc(i.no)}</td><td>${esc(client(i.clientId).name)}</td><td>${dmy(i.date)}</td><td><span class="tag ${status(i)}">${status(i)}</span></td><td class="n">${money(calc(i).total)}</td></tr>`;
+ const rec=db.invoices.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.no.localeCompare(a.no)).slice(0,6);
+ const od=inv.filter(i=>status(i)==='overdue').sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
+ const tb=(h,rows,msg)=>rows.length?`<div class="wrap"><table><tr>${h.map((x,k)=>`<th${k>3?' class="n"':''}>${x}</th>`).join('')}</tr>${rows.join('')}</table></div>`:`<div class="empty">${msg}</div>`;
+ const act=(db.projects||[]).filter(p=>p.status==='active').length;
+ return `<div class="row"><h2 class="grow" style="margin:0">Welcome to ${esc(db.settings.name)}</h2>
+  <button class="pri" onclick="newInv()">New invoice</button><button onclick="newInv(true)">New quote</button></div>
+ <div class="card clk"><div><div class="tm" id="hm-time"></div><small id="hm-date"></small></div>
+  <div><div class="tp" id="hm-temp">--</div><small id="hm-wx">${esc(WX.place)}</small></div></div>
+ <div class="stats">
+  ${st('Total invoiced',money(billed),'',inv.length+' invoices sent')}
+  ${st('Total collected',money(coll),'',paidN+' fully paid')}
+  ${st('Outstanding',money(out),'',outN+' unpaid')}
+  ${st('Overdue',money(over),'big',overN+' overdue')}</div>
+ <div class="stats">
+  ${st('Invoiced this month',money(billedM))}
+  ${st('Collected this month',money(collM))}
+  ${st('Draft invoices',drafts)}
+  ${st('Active projects',act)}</div>
+ <div class="stats">
+  ${st('Quotes',qs.length,'',money(qv)+' total value')}
+  ${st('Quotes awaiting reply',qc('sent'))}
+  ${st('Quotes approved',qc('approved'))}
+  ${st('Quote win rate',qDec?win+'%':'-','',qc('rejected')+' rejected')}</div>
+ <h2 style="font-size:17px;margin-top:24px">Overdue invoices</h2>${tb(['Number','Client','Date','Status','Total'],od.map(row),'Nothing overdue. Nice work.')}
+ <h2 style="font-size:17px;margin-top:24px">Recent invoices and quotes</h2>${tb(['Number','Client','Date','Status','Total'],rec.map(row),'No invoices or quotes yet.')}`;
+}
+
+/* ---------- Invoices ---------- */
+function invList(){
+ const t=today(),m=t.slice(0,7);
+ let out=0,over=0,paidM=0,cntM=0;
+ db.invoices.filter(i=>!isQ(i)).forEach(i=>{const s=status(i);
+  if(['sent','partial','overdue'].includes(s))out+=bal(i);if(s==='overdue')over+=bal(i);
+  payList(i).forEach(p=>{if((p.date||'').slice(0,7)===m)paidM+=+p.amount||0});
+  if(i.date.slice(0,7)===m)cntM++});
+ const q=V.q.toLowerCase();
+ const rows=db.invoices.filter(i=>isQ(i)===(V.tab==='quotes')&&(V.filter==='all'||status(i)===V.filter)&&(!q||(i.no+client(i.clientId).name).toLowerCase().includes(q)))
+  .sort((a,b)=>b.date.localeCompare(a.date)||b.no.localeCompare(a.no));
+ return `<div class="row"><h2 class="grow" style="margin:0">Invoices</h2><button class="pri" onclick="newInv()">New invoice</button></div>
+ <div class="stats">
+  <div class="stat"><small>Outstanding</small><strong>${money(out)}</strong></div>
+  <div class="stat big"><small>Overdue</small><strong>${money(over)}</strong></div>
+  <div class="stat"><small>Collected this month</small><strong>${money(paidM)}</strong></div>
+  <div class="stat"><small>Invoices this month</small><strong>${cntM}</strong></div></div>
+ <div class="row"><input style="max-width:280px" placeholder="Search by number or client" value="${esc(V.q)}" oninput="V.q=this.value;keepList()">
+ <select style="max-width:160px" onchange="V.filter=this.value;render()">${['all','draft','sent','partial','overdue','paid'].map(s=>`<option value="${s}" ${V.filter===s?'selected':''}>${s==='all'?'All statuses':s[0].toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>
+ <div id="tbl">${tbl(rows)}</div>`;
+}
+function tbl(rows){
+ if(!rows.length)return `<div class="empty">No ${V.tab==='quotes'?'quotes':'invoices'} to show. Select “New ${V.tab==='quotes'?'quote':'invoice'}” to start.</div>`;
+ return `<div class="wrap"><table><tr><th>Number</th><th>Client</th><th>Date</th><th>${V.tab==='quotes'?'Valid until':'Due'}</th><th>Status</th><th class="n">Total</th></tr>${rows.map(i=>{const s=status(i);return `<tr class="click" onclick="go('${tabOf(i)}','view','${i.id}')"><td>${esc(i.no)}</td><td>${esc(client(i.clientId).name)}</td><td>${i.date}</td><td>${i.due}</td><td><span class="tag ${s}">${s}</span></td><td class="n">${money(calc(i).total)}</td></tr>`}).join('')}</table></div>`}
+function keepList(){const q=V.q.toLowerCase();$('#tbl').innerHTML=tbl(db.invoices.filter(i=>isQ(i)===(V.tab==='quotes')&&(V.filter==='all'||status(i)===V.filter)&&(!q||(i.no+client(i.clientId).name).toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date)||b.no.localeCompare(a.no)))}
+
+function nextNo(q){const s=db.settings;return q?s.qprefix+String(s.qnext).padStart(3,'0'):s.prefix+String(s.next).padStart(3,'0')}
+function newInv(q){q=!!q;
+ if(!db.clients.length){toast('Add a client first.');go('clients','edit','new');return}
+ const s=db.settings;
+ ed={id:null,type:q?'quote':'invoice',projectId:'',payments:[],no:nextNo(q),clientId:db.clients[0].id,date:today(),due:addDays(today(),+s.dueDays||14),items:[{d:'',q:1,p:0}],tax:+s.taxRate||0,discount:0,status:'draft',notes:s.terms,showBank:true,showNote:true,bank:s.bank};
+ V={...V,tab:q?'quotes':'invoices',sub:'edit',id:null};render()}
+function editInv(id){ed=JSON.parse(JSON.stringify(invById(id)));go(tabOf(ed),'edit',id)}
+function invEdit(){
+ const e=ed;
+ return `<h2>${e.id?'Edit':'New'} ${isQ(e)?'quote':'invoice'}</h2>
+ <div class="card"><div class="grid">
+  <div><label>${isQ(e)?'Quote':'Invoice'} number</label><input value="${esc(e.no)}" oninput="ed.no=this.value"></div>
+  <div><label>Client</label><select onchange="ed.clientId=this.value">${db.clients.map(c=>`<option value="${c.id}" ${c.id===e.clientId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+  <div><label>Subject or job title</label><input value="${esc(e.subject||'')}" oninput="ed.subject=this.value" placeholder="e.g. Fire panel repair"></div>
+  <div><label>Project (optional)</label><select onchange="ed.projectId=this.value"><option value="">None</option>${db.projects.map(p=>`<option value="${p.id}" ${p.id===e.projectId?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+  <div><label>${isQ(e)?'Quote':'Invoice'} date</label><input type="date" value="${e.date}" oninput="ed.date=this.value"></div>
+  <div><label>${isQ(e)?'Valid until':'Due date'}</label><input type="date" value="${e.due}" oninput="ed.due=this.value"></div></div></div>
+ <div class="card"><div class="wrap"><table id="items"><tr><th>Description</th><th style="width:90px">Qty / hrs</th><th style="width:130px">Unit price</th><th class="n" style="width:130px">Amount</th><th style="width:50px"></th></tr>
+ ${e.items.map((l,k)=>`<tr><td><input value="${esc(l.d)}" oninput="ed.items[${k}].d=this.value"></td><td><input type="number" min="0" step="any" value="${l.q}" oninput="ed.items[${k}].q=this.value;totals()"></td><td><input type="number" min="0" step="any" value="${l.p}" oninput="ed.items[${k}].p=this.value;totals()"></td><td class="n" id="amt${k}"></td><td><button class="dng" title="Remove line" onclick="ed.items.splice(${k},1);if(!ed.items.length)ed.items.push({d:'',q:1,p:0});render()">×</button></td></tr>`).join('')}</table></div>
+ <div class="row" style="margin-top:12px"><button onclick="ed.items.push({d:'',q:1,p:0});render()">Add line</button></div>
+ <div class="tot"><div><span>Subtotal</span><span id="t-sub"></span></div>
+  <div><span>Discount</span><input type="number" min="0" step="any" style="width:110px" value="${e.discount}" oninput="ed.discount=this.value;totals()"></div>
+  <div><span>Tax %</span><input type="number" min="0" step="any" style="width:110px" value="${e.tax}" oninput="ed.tax=this.value;totals()"></div>
+  <div><span>Tax</span><span id="t-tax"></span></div><div class="g"><span>Total</span><span id="t-tot"></span></div></div></div>
+ <div class="card">
+ <label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" style="width:auto" ${e.showNote!==false?'checked':''} onchange="ed.showNote=this.checked;$('#nt').style.display=this.checked?'':'none'"> Show note on this ${isQ(e)?'quote':'invoice'}</label>
+ <textarea id="nt" rows="3" style="margin-top:6px;${e.showNote!==false?'':'display:none'}" oninput="ed.notes=this.value">${esc(e.notes)}</textarea>
+ <label style="display:flex;gap:8px;align-items:center;margin-top:14px;color:var(--ink)"><input type="checkbox" style="width:auto" ${e.showBank!==false?'checked':''} onchange="ed.showBank=this.checked;$('#bk').style.display=this.checked?'':'none'"> Show bank details on this ${isQ(e)?'quote':'invoice'}</label>
+ <textarea id="bk" rows="4" style="margin-top:6px;${e.showBank!==false?'':'display:none'}" oninput="ed.bank=this.value">${esc(e.bank!==undefined?e.bank:db.settings.bank)}</textarea></div>
+ <div class="row"><button class="pri" onclick="saveInv()">Save invoice</button><button onclick="go(V.tab,'list')">Cancel</button></div>`;
+}
+function totals(){
+ ed.items.forEach((l,k)=>{const el=$('#amt'+k);if(el)el.textContent=money((+l.q||0)*(+l.p||0))});
+ const c=calc(ed);$('#t-sub').textContent=money(c.sub);$('#t-tax').textContent=money(c.tax);$('#t-tot').textContent=money(c.total)}
+function saveInv(){
+ const e=ed;
+ if(!e.no.trim())return toast('Enter an invoice number.');
+ if(db.invoices.some(i=>i.no===e.no&&i.id!==e.id))return toast('That invoice number already exists.');
+ if(!e.items.some(l=>l.d.trim()||+l.p))return toast('Add at least one line item.');
+ if(e.due<e.date)return toast('Due date is before the invoice date.');
+ e.items=e.items.filter(l=>l.d.trim()||+l.p);
+ if(e.id){db.invoices[db.invoices.findIndex(i=>i.id===e.id)]=e}
+ else{e.id=uid();db.invoices.push(e);
+  const s=db.settings,q=isQ(e),pf=q?s.qprefix:s.prefix,k=q?'qnext':'next';
+  const m=e.no.startsWith(pf)&&parseInt(e.no.slice(pf.length),10);
+  if(m&&m>=s[k])s[k]=m+1}
+ save();toast((isQ(e)?'Quote':'Invoice')+' saved.');go(tabOf(e),'view',e.id)}
+
+function invView(){
+ const i=invById(V.id);if(!i)return '<div class="empty">Not found.</div>';
+ const s=db.settings,c=client(i.clientId),t=calc(i),st=status(i),q=isQ(i),pr=db.projects.find(p=>p.id===i.projectId),b=bal(i),pl=payList(i),bk=i.bank!==undefined?i.bank:s.bank,showBk=i.showBank!==false&&bk,showNt=i.showNote!==false&&i.notes;
+ const btn=(l,f,k='')=>`<button class="${k}" onclick="${f}">${l}</button>`;
+ return `<div class="row noprint">${btn('Back',"go(V.tab,'list')")}<span class="grow"></span><span class="tag ${st}">${st}</span>
+  ${i.status==='draft'?btn('Mark as sent',`setSt('${i.id}','sent')`):''}
+  ${q&&i.status==='sent'?btn('Approved',`setSt('${i.id}','approved')`,'pri')+btn('Rejected',`setSt('${i.id}','rejected')`):''}
+  ${q&&i.status==='approved'?btn('Convert to invoice',`toInv('${i.id}')`,'pri'):''}
+  ${q&&['approved','rejected'].includes(i.status)?btn('Reopen',`setSt('${i.id}','sent')`):''}
+  ${btn(i.showBank===false?'Show bank details':'Hide bank details',`togBank('${i.id}')`)}${i.notes?btn(i.showNote===false?'Show note':'Hide note',`togNote('${i.id}')`):''}${btn('Edit',`editInv('${i.id}')`)}${btn('Duplicate',`dupInv('${i.id}')`)}${btn('Print or save PDF','print()')}${btn('Delete',`delInv('${i.id}')`,'dng')}</div>
+ <div id="sheet">
+  <div class="hd"><div><h1 class="ttl">${q?'Quote':'Invoice'}</h1><div class="meta">${esc(i.no)}<br>${dmy(i.date)}${q?'<br><span class="mute">Valid until '+dmy(i.due)+'</span>':''}${st==='paid'?'<br><b style="color:var(--ok)">PAID</b>':''}${q&&st==='approved'?'<br><b style="color:var(--ok)">APPROVED</b>':''}</div></div>
+  <img class="logo" src="${LOGO}" alt="${esc(s.name)}"></div>
+  <div class="to pre">${q?'Prepared for':'To'} ${esc(c.name)}${c.address?'\n'+esc(c.address):''}${i.subject?'\n'+esc(i.subject):''}</div>
+  <hr class="rule">
+  <table class="it"><tr><th>Description</th><th class="n" style="width:130px">Unit price</th><th class="n" style="width:70px">Qty</th><th class="n" style="width:130px">Total</th></tr>
+  ${i.items.map(l=>`<tr><td>${esc(l.d)}</td><td class="n">${num(l.p)}</td><td class="n">${+l.q}</td><td class="n">${num((+l.q||0)*(+l.p||0))}</td></tr>`).join('')}</table>
+  ${showNt?`<div class="note">${esc(i.notes)}</div>`:'<div style="height:44px"></div>'}
+  <hr class="rule">
+  <div class="bot"><div class="bank pre">${showBk?'<b>Bank Details</b>\n'+esc(bk):''}</div>
+  <div class="sum"><div><span>Total</span><span>${num(t.sub)}</span></div>
+  ${t.disc?`<div><span>Discount</span><span>-${num(t.disc)}</span></div>`:''}
+  ${+i.tax?`<div><span>Tax (${+i.tax}%)</span><span>${num(t.tax)}</span></div>`:''}
+  <div class="g"><span>${q?'Quote Total':'Amount Due'}</span><span>${money(t.total)}</span></div>
+  ${!q&&paidAmt(i)>0&&b>0?`<div><span>Paid</span><span>-${num(paidAmt(i))}</span></div><div class="g"><span>Balance Due</span><span>${money(b)}</span></div>`:''}</div></div>
+  <div class="ft"><div class="pre">${esc(s.email)}${s.phone?'\n'+esc(s.phone):''}</div><div class="pre" style="text-align:right">${esc(s.website)}${s.handle?'\n'+esc(s.handle):''}</div></div>
+  <div class="rights"><b>Nifti Tech</b> All Right Received</div></div>
+ ${!q&&i.status!=='draft'?`<div class="card noprint"><b>Payments</b>
+  ${pl.length?`<table style="margin:8px 0"><tr><th>Date</th><th>Method</th><th class="n">Amount</th><th></th></tr>${pl.map((p,k)=>`<tr><td>${p.date}</td><td>${esc(p.method)}</td><td class="n">${money(p.amount)}</td><td class="n">${i.payments&&i.payments.length?`<button class="dng" title="Remove payment" onclick="delPay('${i.id}',${k})">×</button>`:''}</td></tr>`).join('')}</table>`:'<p class="mute">No payments recorded.</p>'}
+  ${b>0?`<div class="inl"><div><label>Date</label><input type="date" id="pd" value="${today()}"></div><div><label>Amount</label><input type="number" step="any" id="pa" value="${b.toFixed(2)}"></div><div><label>Method</label><select id="pm"><option>Bank transfer</option><option>Cash</option><option>Card</option><option>Cheque</option><option>Other</option></select></div><button class="pri" onclick="addPay('${i.id}')">Record payment</button></div>`:''}</div>`:''}`;
+}
+function togNote(id){const i=invById(id);i.showNote=i.showNote===false;save();render()}
+function togBank(id){const i=invById(id);i.showBank=i.showBank===false;save();render()}
+function setSt(id,st){invById(id).status=st;save();render()}
+function addPay(id){const i=invById(id),a=+$('#pa').value;if(!(a>0))return toast('Enter an amount above zero.');
+ const d=$('#pd').value||today();i.payments=i.payments||[];i.payments.push({date:d,amount:a,method:$('#pm').value});
+ if(calc(i).total-paidAmt(i)<=0.005){i.status='paid';i.paidOn=d}save();toast('Payment recorded.');render()}
+function delPay(id,k){const i=invById(id);i.payments.splice(k,1);if(i.status==='paid'&&calc(i).total-paidAmt(i)>0.005)i.status='sent';save();render()}
+function dupInv(id){const i=JSON.parse(JSON.stringify(invById(id))),q=isQ(i);i.id=null;i.no=nextNo(q);i.date=today();i.due=addDays(today(),q?30:(+db.settings.dueDays||14));i.status='draft';i.paidOn=null;i.payments=[];ed=i;go(tabOf(i),'edit',null);toast('Copied as a new draft.')}
+function toInv(id){const i=JSON.parse(JSON.stringify(invById(id)));i.fromQuote=i.no;i.id=null;i.type='invoice';i.no=nextNo();i.date=today();i.due=addDays(today(),+db.settings.dueDays||14);i.status='draft';i.payments=[];ed=i;go('invoices','edit',null);toast('Review the invoice, then save.')}
+function delInv(id){const i=invById(id);if(confirm('Delete '+i.no+'? This cannot be undone.')){
+ db.time.concat(db.expenses).forEach(x=>{if(x.invId===id)x.invId=null});db.projects.forEach(p=>(p.ms||[]).forEach(m=>{if(m.invId===id)m.invId=null}));
+ db.invoices=db.invoices.filter(x=>x.id!==id);save();toast('Deleted.');go(V.tab,'list')}}
+
+/* ---------- Clients ---------- */
+function cliList(){
+ const cb=id=>db.invoices.filter(i=>!isQ(i)&&i.clientId===id&&i.status!=='draft').reduce((a,i)=>a+bal(i),0);
+ return `<div class="row"><h2 class="grow" style="margin:0">Clients</h2><button class="pri" onclick="go('clients','edit','new')">Add client</button></div>
+ ${db.clients.length?`<div class="wrap"><table><tr><th>Name</th><th>Email</th><th>Phone</th><th>Invoices</th><th class="n">Outstanding</th></tr>${db.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<tr class="click" onclick="go('clients','edit','${c.id}')"><td>${esc(c.name)}</td><td>${esc(c.email)}</td><td>${esc(c.phone)}</td><td>${db.invoices.filter(i=>i.clientId===c.id&&!isQ(i)).length}</td><td class="n">${money(cb(c.id))}</td></tr>`).join('')}</table></div>`:'<div class="empty">No clients yet. Add one to start invoicing.</div>'}`}
+function cliEdit(){
+ const c=V.id==='new'?{name:'',email:'',phone:'',address:''}:db.clients.find(x=>x.id===V.id);
+ return `<h2>${V.id==='new'?'Add client':'Edit client'}</h2><div class="card"><div class="grid">
+ <div><label>Client name</label><input id="c-name" value="${esc(c.name)}"></div><div><label>Email</label><input id="c-email" value="${esc(c.email)}"></div>
+ <div><label>Phone</label><input id="c-phone" value="${esc(c.phone)}"></div></div>
+ <div style="margin-top:12px"><label>Address</label><textarea id="c-addr" rows="3">${esc(c.address)}</textarea></div></div>
+ <div class="row"><button class="pri" onclick="saveCli()">Save client</button><button onclick="go('clients')">Cancel</button><span class="grow"></span>${V.id!=='new'?`<button class="dng" onclick="delCli()">Delete client</button>`:''}</div>`}
+function saveCli(){
+ const n=$('#c-name').value.trim();if(!n)return toast('Enter a client name.');
+ const d={name:n,email:$('#c-email').value.trim(),phone:$('#c-phone').value.trim(),address:$('#c-addr').value.trim()};
+ if(V.id==='new')db.clients.push({id:uid(),...d});else Object.assign(db.clients.find(x=>x.id===V.id),d);
+ save();toast('Client saved.');go('clients')}
+function delCli(){
+ if(db.invoices.some(i=>i.clientId===V.id))return toast('This client has invoices, so it cannot be deleted.');
+ if(confirm('Delete this client?')){db.clients=db.clients.filter(c=>c.id!==V.id);save();go('clients')}}
+
+/* ---------- Settings ---------- */
+function setView(){
+ const s=db.settings,f=(k,l,t='text')=>`<div><label>${l}</label><input type="${t}" id="s-${k}" value="${esc(s[k])}"></div>`;
+ return `<h2>Settings</h2><div class="card"><div class="grid">${f('name','Business name')}${f('email','Email')}${f('phone','Phone')}${f('taxId','Tax or registration number')}
+ ${f('currency','Currency label (e.g. LKR, USD)')}${f('taxRate','Default tax %','number')}${f('dueDays','Default days until due','number')}${f('prefix','Invoice number prefix')}${f('next','Next invoice number','number')}${f('website','Website')}${f('handle','Social handle')}${f('qprefix','Quote number prefix')}${f('qnext','Next quote number','number')}</div>
+ <div style="margin-top:12px"><label>Business address</label><textarea id="s-address" rows="3">${esc(s.address)}</textarea></div>
+ <div style="margin-top:12px"><label>Default bank details (copied to each new invoice)</label><textarea id="s-bank" rows="3">${esc(s.bank)}</textarea></div>
+ <div style="margin-top:12px"><label>Default note (copied to each new invoice or quote)</label><textarea id="s-terms" rows="2">${esc(s.terms)}</textarea></div>
+ <div class="row" style="margin-top:12px"><button class="pri" onclick="saveSet()">Save settings</button></div></div>
+ <div class="card"><b>Backup and export</b><p class="mute" style="margin:4px 0 12px">Your data syncs to the cloud and is shared across all devices you sign in on. The server also keeps 10 rolling backups. Still export a copy now and then and keep it somewhere safe.</p>
+ <div class="row"><button onclick="backup()">Download backup</button><button onclick="$('#imp').click()">Restore from backup</button><button onclick="csv()">Export invoices (CSV)</button><input type="file" id="imp" accept=".json" hidden onchange="restore(this.files[0])"></div></div>`}
+function saveSet(){
+ const s=db.settings;
+ ['name','email','phone','taxId','currency','prefix','qprefix','website','handle','address','bank','terms'].forEach(k=>s[k]=$('#s-'+k).value);
+ ['taxRate','dueDays','next','qnext'].forEach(k=>s[k]=Math.max(0,+$('#s-'+k).value||0));
+ s.next=Math.max(1,s.next);s.qnext=Math.max(1,s.qnext);save();toast('Settings saved.');render()}
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function backup(){dl('nifti-backup-'+today()+'.json',JSON.stringify(db,null,1),'application/json')}
+function restore(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.settings||!Array.isArray(d.invoices)||!Array.isArray(d.clients))throw 0;if(!confirm('This replaces all current data with the backup. Continue?'))return;db={...DEF,...d};save();toast('Backup restored.');go('invoices')}catch(e){toast('That file is not a valid backup.')}};r.readAsText(f)}
+function csv(){const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+ const rows=[['Number','Client','Date','Due','Status','Subtotal','Discount','Tax','Total','Paid on'].map(q).join(',')];
+ db.invoices.filter(i=>!isQ(i)).forEach(i=>{const t=calc(i);rows.push([i.no,client(i.clientId).name,i.date,i.due,status(i),t.sub.toFixed(2),t.disc.toFixed(2),t.tax.toFixed(2),t.total.toFixed(2),i.paidOn||''].map(q).join(','))});
+ dl('invoices-'+today()+'.csv','\ufeff'+rows.join('\n'),'text/csv')}
+
+const T=(h,r,L=1)=>`<div class="wrap"><table><tr>${h.map((x,k)=>`<th${k>=L?' class="n"':''}>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map((c,k)=>`<td${k>=L?' class="n"':''}>${c}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${h.length}" class="mute">No data yet.</td></tr>`}</table></div>`;
+const link=(tab,id,txt)=>`<a href="#" onclick="go('${tab}','view','${id}');return false">${esc(txt)}</a>`;
+
+/* ---------- Quotes ---------- */
+function quoList(){
+ const qs=db.invoices.filter(isQ),n=k=>qs.filter(i=>i.status===k),sum=a=>a.reduce((x,i)=>x+calc(i).total,0),ql=V.q.toLowerCase();
+ const rows=qs.filter(i=>(V.filter==='all'||i.status===V.filter)&&(!ql||(i.no+client(i.clientId).name).toLowerCase().includes(ql))).sort((a,b)=>b.date.localeCompare(a.date)||b.no.localeCompare(a.no));
+ return `<div class="row"><h2 class="grow" style="margin:0">Quotes</h2><button class="pri" onclick="newInv(true)">New quote</button></div>
+ <div class="stats"><div class="stat"><small>Awaiting approval</small><strong>${money(sum(n('sent')))}</strong></div><div class="stat"><small>Approved</small><strong>${money(sum(n('approved')))}</strong></div><div class="stat"><small>Rejected</small><strong>${n('rejected').length}</strong></div></div>
+ <div class="row"><input style="max-width:280px" placeholder="Search by number or client" value="${esc(V.q)}" oninput="V.q=this.value;keepList()">
+ <select style="max-width:160px" onchange="V.filter=this.value;render()">${['all','draft','sent','approved','rejected'].map(s=>`<option value="${s}" ${V.filter===s?'selected':''}>${s==='all'?'All statuses':s[0].toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>
+ <div id="tbl">${tbl(rows)}</div>`}
+
+/* ---------- Projects ---------- */
+const prj=id=>db.projects.find(p=>p.id===id);
+function pStats(p){
+ const iv=db.invoices.filter(i=>!isQ(i)&&i.projectId===p.id),tm=db.time.filter(x=>x.projectId===p.id),ex=db.expenses.filter(x=>x.projectId===p.id);
+ const inv=iv.filter(i=>i.status!=='draft').reduce((a,i)=>a+calc(i).total,0),lab=tm.reduce((a,x)=>a+(+x.hours||0)*(+x.cost||0),0),exp=ex.reduce((a,x)=>a+(+x.amount||0),0);
+ return{inv,lab,exp,col:iv.reduce((a,i)=>a+paidAmt(i),0),hrs:tm.reduce((a,x)=>a+(+x.hours||0),0),profit:inv-lab-exp}}
+const unb=pid=>({t:db.time.filter(x=>x.projectId===pid&&!x.invId),e:db.expenses.filter(x=>x.projectId===pid&&x.billable&&!x.invId)});
+function prjList(){
+ return `<div class="row"><h2 class="grow" style="margin:0">Projects</h2><button class="pri" onclick="go('projects','edit','new')">New project</button></div>
+ ${db.projects.length?T(['Project','Client','Status','Budget','Invoiced','Costs','Profit'],db.projects.map(p=>{const s=pStats(p);return [link('projects',p.id,p.name),esc(client(p.clientId).name),`<span class="tag ${p.status}">${p.status}</span>`,money(p.budget),money(s.inv),money(s.lab+s.exp),money(s.profit)]}),3):'<div class="empty">No projects yet. Create one to group quotes, invoices, hours, and expenses.</div>'}`}
+function prjEdit(){
+ if(!db.clients.length)return '<div class="empty">Add a client first.</div>';
+ const p=V.id==='new'?{name:'',clientId:db.clients[0].id,budget:0,status:'active'}:prj(V.id),o=(v,l)=>`<option value="${v}" ${p.status===v?'selected':''}>${l}</option>`;
+ return `<h2>${V.id==='new'?'New project':'Edit project'}</h2><div class="card"><div class="grid"><div><label>Project name</label><input id="p-name" value="${esc(p.name)}"></div>
+ <div><label>Client</label><select id="p-cl">${db.clients.map(c=>`<option value="${c.id}" ${c.id===p.clientId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+ <div><label>Budget</label><input type="number" min="0" step="any" id="p-bud" value="${p.budget}"></div>
+ <div><label>Status</label><select id="p-st">${o('active','Active')}${o('done','Done')}</select></div></div></div>
+ <div class="row"><button class="pri" onclick="savePrj()">Save project</button><button onclick="go('projects',${V.id==='new'?"'list'":`'view','${V.id}'`})">Cancel</button><span class="grow"></span>${V.id!=='new'?'<button class="dng" onclick="delPrj()">Delete project</button>':''}</div>`}
+function savePrj(){const n=$('#p-name').value.trim();if(!n)return toast('Enter a project name.');
+ const d={name:n,clientId:$('#p-cl').value,budget:+$('#p-bud').value||0,status:$('#p-st').value};let id=V.id;
+ if(id==='new'){id=uid();db.projects.push({id,ms:[],...d})}else Object.assign(prj(id),d);save();toast('Project saved.');go('projects','view',id)}
+function delPrj(){const id=V.id;if(db.invoices.some(i=>i.projectId===id)||db.time.some(x=>x.projectId===id)||db.expenses.some(x=>x.projectId===id))return toast('This project has linked records. Mark it as done instead.');
+ if(confirm('Delete this project?')){db.projects=db.projects.filter(p=>p.id!==id);save();go('projects')}}
+function prjView(){
+ const p=prj(V.id);if(!p)return '<div class="empty">Project not found.</div>';
+ const s=pStats(p),u=unb(p.id),ub=u.t.reduce((a,x)=>a+(+x.hours||0)*(+x.rate||0),0)+u.e.reduce((a,x)=>a+(+x.amount||0),0),ms=p.ms||[];
+ const st=(l,v)=>`<div class="stat"><small>${l}</small><strong>${v}</strong></div>`;
+ const docs=db.invoices.filter(i=>i.projectId===p.id).sort((a,b)=>b.date.localeCompare(a.date));
+ return `<div class="row"><button onclick="go('projects')">Back</button><h2 class="grow" style="margin:0">${esc(p.name)} <span class="tag ${p.status}">${p.status}</span></h2><button onclick="go('projects','edit','${p.id}')">Edit</button><button onclick="prjDoc('${p.id}',true)">New quote</button><button class="pri" onclick="prjDoc('${p.id}',false)">New invoice</button></div>
+ <p class="mute">Client: ${esc(client(p.clientId).name)}</p>
+ <div class="stats">${st('Budget',money(p.budget))}${st('Invoiced',money(s.inv))}${st('Collected',money(s.col))}${st('Costs',money(s.lab+s.exp))}${st('Profit',money(s.profit))}${st('Hours logged',s.hrs)}</div>
+ <div class="card"><b>Milestones</b>
+ ${ms.length?T(['Milestone','Amount','Invoice',''],ms.map((m,k)=>{const iv=m.invId&&invById(m.invId);return [esc(m.name),money(m.amount),iv?`${link('invoices',iv.id,iv.no)} <span class="tag ${status(iv)}">${status(iv)}</span>`:'Not invoiced',iv?'':`<button onclick="msInv('${p.id}',${k})">Create invoice</button> <button class="dng" title="Remove" onclick="delMs('${p.id}',${k})">×</button>`]})):'<p class="mute">No milestones yet.</p>'}
+ <div class="inl" style="margin-top:12px"><div style="flex:3"><label>Milestone name</label><input id="mn"></div><div><label>Amount</label><input type="number" min="0" step="any" id="ma"></div><button onclick="addMs('${p.id}')">Add milestone</button></div></div>
+ <div class="card"><b>Unbilled work</b><p class="mute">${u.t.length} time entries and ${u.e.length} billable expenses, ${money(ub)} in total.</p><button ${u.t.length||u.e.length?'':'disabled'} onclick="billWork('${p.id}')">Create invoice from unbilled work</button></div>
+ <h2 style="font-size:17px">Quotes and invoices</h2>${docs.length?T(['Number','Type','Date','Status','Total'],docs.map(i=>[link(tabOf(i),i.id,i.no),isQ(i)?'Quote':'Invoice',i.date,`<span class="tag ${status(i)}">${status(i)}</span>`,money(calc(i).total)]),4):'<div class="empty">Nothing linked to this project yet.</div>'}`}
+function prjDoc(pid,q){newInv(q);ed.projectId=pid;ed.clientId=prj(pid).clientId;render()}
+function addMs(pid){const p=prj(pid),n=$('#mn').value.trim(),a=+$('#ma').value;if(!n||!(a>0))return toast('Enter a milestone name and an amount.');(p.ms=p.ms||[]).push({id:uid(),name:n,amount:a,invId:null});save();render()}
+function delMs(pid,k){prj(pid).ms.splice(k,1);save();render()}
+function mkDraft(p,items,after){const s=db.settings,i={id:uid(),type:'invoice',projectId:p.id,no:nextNo(),clientId:p.clientId,date:today(),due:addDays(today(),+s.dueDays||14),items,tax:+s.taxRate||0,discount:0,status:'draft',notes:s.terms,payments:[],showBank:true,showNote:true,bank:s.bank};
+ db.invoices.push(i);s.next++;after(i);save();toast('Draft invoice created.');go('invoices','view',i.id)}
+function msInv(pid,k){const p=prj(pid),m=p.ms[k];mkDraft(p,[{d:p.name+' - '+m.name,q:1,p:m.amount}],i=>{m.invId=i.id})}
+function billWork(pid){const p=prj(pid),u=unb(pid);
+ const items=u.t.map(x=>({d:`${x.who||'Engineer'}: ${x.desc||'Work'} (${x.date})`,q:+x.hours,p:+x.rate})).concat(u.e.map(x=>({d:`Expense: ${x.desc} (${x.date})`,q:1,p:+x.amount})));
+ mkDraft(p,items,i=>u.t.concat(u.e).forEach(x=>{x.invId=i.id}))}
+
+/* ---------- Time and expenses ---------- */
+function timeView(){
+ if(!db.projects.length)return '<h2>Time and expenses</h2><div class="empty">Create a project first, then log hours and expenses against it.</div>';
+ const po=db.projects.filter(p=>p.status==='active').map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+ const srt=a=>a.slice().sort((x,y)=>y.date.localeCompare(x.date)),pn=x=>prj(x.projectId)?esc(prj(x.projectId).name):'(deleted)';
+ const st=x=>x.invId&&invById(x.invId)?esc(invById(x.invId).no):'Unbilled',del=(f,x)=>x.invId?'':`<button class="dng" title="Delete" onclick="${f}('${x.id}')">×</button>`;
+ const un=db.projects.reduce((a,p)=>{const u=unb(p.id);return a+u.t.reduce((x,y)=>x+(+y.hours||0)*(+y.rate||0),0)+u.e.reduce((x,y)=>x+(+y.amount||0),0)},0);
+ return `<h2>Time and expenses</h2><div class="stats"><div class="stat"><small>Unbilled work</small><strong>${money(un)}</strong></div></div>
+ <div class="card"><b>Log time</b><div class="inl" style="margin-top:8px"><div><label>Project</label><select id="t-p">${po}</select></div><div><label>Engineer</label><input id="t-w"></div><div><label>Date</label><input type="date" id="t-d" value="${today()}"></div><div><label>Hours</label><input type="number" min="0" step="any" id="t-h"></div><div><label>Billing rate per hour</label><input type="number" min="0" step="any" id="t-r"></div><div><label>Cost rate per hour (optional)</label><input type="number" min="0" step="any" id="t-c"></div><div style="flex:3"><label>Description</label><input id="t-x"></div><button class="pri" onclick="addTime()">Add time</button></div></div>
+ ${T(['Date','Project','Engineer','Status','Hours','Amount',''],srt(db.time).slice(0,100).map(x=>[x.date,pn(x),esc(x.who),st(x),+x.hours,money(x.hours*x.rate),del('delTime',x)]),4)}
+ <div class="card" style="margin-top:20px"><b>Log expense</b><div class="inl" style="margin-top:8px"><div><label>Project</label><select id="e-p">${po}</select></div><div><label>Date</label><input type="date" id="e-d" value="${today()}"></div><div style="flex:3"><label>Description</label><input id="e-x"></div><div><label>Amount</label><input type="number" min="0" step="any" id="e-a"></div><div style="flex:0;min-width:110px"><label>Bill to client</label><input type="checkbox" id="e-b" checked style="width:auto"></div><button class="pri" onclick="addExp()">Add expense</button></div></div>
+ ${T(['Date','Project','Description','Status','Billable','Amount',''],srt(db.expenses).slice(0,100).map(x=>[x.date,pn(x),esc(x.desc),st(x),x.billable?'Yes':'No',money(x.amount),del('delExp',x)]),4)}`}
+function addTime(){const p=$('#t-p').value,h=+$('#t-h').value;if(!p)return toast('Choose a project.');if(!(h>0))return toast('Enter the hours worked.');
+ db.time.push({id:uid(),projectId:p,who:$('#t-w').value.trim(),date:$('#t-d').value||today(),hours:h,rate:+$('#t-r').value||0,cost:+$('#t-c').value||0,desc:$('#t-x').value.trim(),invId:null});save();toast('Time added.');render()}
+function addExp(){const p=$('#e-p').value,a=+$('#e-a').value;if(!p)return toast('Choose a project.');if(!(a>0)||!$('#e-x').value.trim())return toast('Enter a description and an amount.');
+ db.expenses.push({id:uid(),projectId:p,date:$('#e-d').value||today(),desc:$('#e-x').value.trim(),amount:a,billable:$('#e-b').checked,invId:null});save();toast('Expense added.');render()}
+function delTime(id){db.time=db.time.filter(x=>x.id!==id);save();render()}
+function delExp(id){db.expenses=db.expenses.filter(x=>x.id!==id);save();render()}
+
+/* ---------- Reports ---------- */
+function repView(){
+ const inv=db.invoices.filter(i=>!isQ(i)&&i.status!=='draft'),mo={},cl={},ag=[0,0,0,0,0];
+ const M=k=>mo[k]=mo[k]||{i:0,c:0};
+ inv.forEach(i=>{const n=client(i.clientId).name,t=calc(i).total;M(i.date.slice(0,7)).i+=t;const c=cl[n]=cl[n]||{i:0,c:0,b:0};c.i+=t;c.b+=bal(i);
+  payList(i).forEach(p=>{M((p.date||i.date).slice(0,7)).c+=+p.amount||0;c.c+=+p.amount||0});
+  if(bal(i)>0){const d=Math.floor((new Date(today())-new Date(i.due))/864e5);ag[d<=0?0:d<=30?1:d<=60?2:d<=90?3:4]+=bal(i)}});
+ const keys=Object.keys(mo).sort().reverse().slice(0,12),mx=Math.max(1,...keys.map(k=>mo[k].i));
+ const qs=db.invoices.filter(isQ),qn=k=>qs.filter(i=>i.status===k),w=qn('approved').length,l=qn('rejected').length;
+ return `<h2>Reports</h2>
+ <h2 style="font-size:17px">Revenue by month</h2>${T(['Month','Invoiced','Collected',''],keys.map(k=>[k,money(mo[k].i),money(mo[k].c),`<div style="width:140px;margin-left:auto"><div class="bar" style="width:${mo[k].i/mx*100}%"></div></div>`]))}
+ <h2 style="font-size:17px;margin-top:24px">Unpaid invoices by age</h2>${T(['Not yet due','1 to 30 days late','31 to 60 days late','61 to 90 days late','Over 90 days late'],[ag.map(money)],0)}
+ <h2 style="font-size:17px;margin-top:24px">Revenue by client</h2>${T(['Client','Invoiced','Collected','Outstanding'],Object.entries(cl).sort((a,b)=>b[1].i-a[1].i).map(([n,v])=>[esc(n),money(v.i),money(v.c),money(v.b)]))}
+ <h2 style="font-size:17px;margin-top:24px">Profit by project</h2>${T(['Project','Invoiced','Costs','Profit'],db.projects.map(p=>{const s=pStats(p);return [esc(p.name),money(s.inv),money(s.lab+s.exp),money(s.profit)]}))}
+ <p class="mute">Profit is invoiced amount (excluding drafts) minus expenses and labour cost (hours times cost rate).</p>
+ <h2 style="font-size:17px;margin-top:24px">Quotes</h2>${T(['Status','Quotes','Value'],['draft','sent','approved','rejected'].map(k=>[k,qn(k).length,money(qn(k).reduce((a,i)=>a+calc(i).total,0))]))}
+ <p class="mute">${w+l?`Approval rate: ${Math.round(w/(w+l)*100)}% of decided quotes.`:'No decided quotes yet.'}</p>`}
+
+boot();
+</script>
+</body>
+</html>
